@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NaNi - Food Delivery System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .view { display: none; }
+        .view.active { display: block; }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .animate-pop-in {
+            animation: popIn 0.3s ease-out forwards;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .quantity-btn {
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .tab-btn {
+             transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            border-color: #F97316;
+            color: #F97316;
+            background-color: #FFF7ED;
+        }
+        /* Star Rating */
+        .star-rating { display: flex; flex-direction: row-reverse; justify-content: flex-end; }
+        .star-rating input { display: none; }
+        .star-rating label { font-size: 1.5rem; color: #ddd; cursor: pointer; transition: color 0.2s; }
+        .star-rating.large label { font-size: 2rem; }
+        .star-rating input:checked ~ label,
+        .star-rating label:hover,
+        .star-rating label:hover ~ label { color: #f97316; }
+        .star-rating.read-only label:hover,
+        .star-rating.read-only label:hover ~ label { color: #ddd; } /* Disable hover on read-only */
+
+        
+        /* Progress Bar */
+        .progress-container {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .progress-bar {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            height: 4px;
+            background-color: #ddd;
+            width: 100%;
+            z-index: 1;
+        }
+        .progress-bar-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: #f97316;
+            transition: width 0.4s ease;
+            z-index: 2;
+        }
+        .progress-step {
+            position: relative;
+            z-index: 3;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            transition: background-color 0.4s ease;
+        }
+        .progress-step.active {
+            background-color: #f97316;
+        }
+        .progress-step-label {
+            position: absolute;
+            top: 40px;
+            width: 100px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Auth View (Login/Register) -->
+    <div id="authView" class="view active">
+        <div class="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4">
+            
+            <!-- Login Form -->
+            <div id="loginView" class="view active">
+                <div class="p-8 max-w-sm w-full bg-white rounded-xl shadow-lg space-y-4">
+                    <div class="text-center">
+                        <img src="https://i.imgur.com/Kf5xTev.png" alt="NaNi Logo" class="h-25 mx-auto mb-4">
+                        <p class="text-gray-500">Welcome back!</p>
+                    </div>
+                    <div>
+                        <label for="loginEmail" class="text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="loginEmail" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" placeholder="you@example.com">
+                    </div>
+                    <div>
+                        <label for="loginPassword" class="text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="loginPassword" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" placeholder="••••••••">
+                    </div>
+                     <p id="loginError" class="text-xs text-red-500"></p>
+                    <button onclick="login()" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">Log in</button>
+                    <p class="text-sm text-center text-gray-600">
+                        Don't have an account? <a href="#" onclick="toggleAuthView('register')" class="font-medium text-orange-500 hover:text-orange-600">Register</a>
+                    </p>
+                </div>
+                 <div class="mt-4 text-center">
+                    <button onclick="loginAs('user1')" class="text-xs text-gray-500 hover:underline">Login as Customer</button> | 
+                    <button onclick="loginAs('rider1')" class="text-xs text-gray-500 hover:underline">Login as Rider</button> | 
+                    <button onclick="loginAs('owner1')" class="text-xs text-gray-500 hover:underline">Login as Owner</button>
+                </div>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerView" class="view">
+                <div class="p-8 max-w-sm w-full bg-white rounded-xl shadow-lg space-y-4">
+                     <div class="text-center">
+                        <img src="https://i.imgur.com/Kf5xTev.png" alt="NaNi Logo" class="h-25 mx-auto mb-4">
+                        <p class="text-gray-500">Create your account</p>
+                    </div>
+                    <div>
+                        <label for="registerName" class="text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" id="registerName" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" placeholder="Juan Dela Cruz">
+                    </div>
+                    <div>
+                        <label for="registerEmail" class="text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="registerEmail" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" placeholder="you@example.com">
+                    </div>
+                    <div>
+                        <label for="registerPassword" class="text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="registerPassword" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" placeholder="••••••••">
+                    </div>
+                     <div>
+                        <label for="registerConfirmPassword" class="text-sm font-medium text-gray-700">Confirm Password</label>
+                        <input type="password" id="registerConfirmPassword" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" placeholder="••••••••">
+                    </div>
+                    <p id="registerError" class="text-xs text-red-500"></p>
+                    <button onclick="register()" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">Register</button>
+                    <p class="text-sm text-center text-gray-600">
+                        Already have an account? <a href="#" onclick="toggleAuthView('login')" class="font-medium text-orange-500 hover:text-orange-600">Log in</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="appContainer" class="view">
+        <header id="appHeader" class="bg-white p-4 shadow-md flex justify-between items-center sticky top-0 z-50">
+            <!-- Header content is rendered dynamically -->
+        </header>
+
+        <main id="mainContent" class="p-4 md:p-8">
+            <!-- Content will be rendered here -->
+        </main>
+    </div>
+    
+    <!-- Universal Modal -->
+    <div id="universalModal" class="modal" onclick="closeModal()">
+        <div id="universalModalContent" class="bg-white rounded-lg shadow-xl w-11/12 md:max-w-md mx-auto animate-pop-in" onclick="event.stopPropagation()">
+            <!-- Modal content will be injected here -->
+        </div>
+    </div>
+
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getFirestore, collection, onSnapshot, doc, getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+// --- FIREBASE SETUP ---
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "DEMO", authDomain: "DEMO", projectId: "DEMO" };
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const productsCollection = collection(db, `artifacts/${appId}/public/data/products`);
+const reviewsCollection = collection(db, `artifacts/${appId}/public/data/reviews`);
+const settingsDoc = doc(db, `artifacts/${appId}/public/data/settings/dashboard`);
+
+// --- STATE MANAGEMENT ---
+const state = {
+    currentUser: null,
+    currentView: 'home',
+    activeOrderId: null,
+    modifyingOrderId: null,
+    products: [],
+    reviews: [],
+    orders: [
+        { 
+            id: 12345, 
+            customerId: 'user1', 
+            riderId: 'rider1', 
+            restaurant: 'NaNi', 
+            items: [
+                { id: "abc-123", name: "Tonkotsu Ramen", price: 450, quantity: 1, image: "https://placehold.co/600x400/F97316/FFFFFF?text=Ramen" },
+                { id: "def-456", name: "Pork Gyoza", price: 250, quantity: 1, image: "https://placehold.co/600x400/F97316/FFFFFF?text=Gyoza" }
+            ], 
+            total: 750, 
+            status: 'Preparing',
+            payment: { method: 'Cash on Delivery', cashAmount: '1000' }
+        }
+    ],
+    chatMessages: {},
+    cart: [],
+    dashboardBg: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2787&auto=format&fit=crop', // Default BG
+    userData: {
+        'user1': { name: 'Alice', role: 'customer', phone: '09171234567', address: '123 Main St, Davao City', profilePic: 'https://placehold.co/96x96/F97316/FFFFFF?text=A' },
+        'rider1': { name: 'Cardo', role: 'rider', phone: '09181112233', vehicle: 'Motorcycle', license: 'D01-23-456789', plateNumber: 'MC 12345', profilePic: 'https://placehold.co/96x96/16A34A/FFFFFF?text=C', licenseImg: 'https://placehold.co/400x250/cccccc/969696?text=License+Img', plateNumberImg: 'https://placehold.co/400x250/cccccc/969696?text=Plate+Img' },
+        'owner1': { name: 'Maria', role: 'owner', restaurant: 'NaNi', phone: '09194445566', address: 'JP Laurel Ave, Davao City', facebook: 'facebook.com/NaNiRestaurant', profilePic: 'https://placehold.co/96x96/9333EA/FFFFFF?text=M' }
+    }
+};
+window.state = state;
+
+// --- RENDER FUNCTIONS ---
+function render() {
+    const user = state.userData[state.currentUser];
+    if (user) {
+        hideView('authView');
+        showView('appContainer');
+        renderHeader(user.role);
+        renderView(state.currentView, state.activeOrderId);
+    } else {
+        hideView('appContainer');
+        showView('authView');
+    }
+    updateCartCount();
+}
+window.render = render;
+
+function renderHeader(role) {
+    const header = document.getElementById('appHeader');
+    let navLinks = '';
+    const activeOrder = state.orders.find(o => o.customerId === state.currentUser && !['Delivered', 'Reviewed', 'Cancelled'].includes(o.status));
+    
+    let modificationBanner = '';
+    if (state.modifyingOrderId) {
+        modificationBanner = `<div class="w-full bg-yellow-100 text-yellow-800 text-center text-sm py-1 absolute top-full left-0">Modifying Order #${state.modifyingOrderId}</div>`;
+    }
+
+    navLinks = `<button onclick="renderView('home')" class="text-gray-600 hover:text-orange-500">Home</button>
+                <button onclick="renderView('profile')" class="text-gray-600 hover:text-orange-500">Profile</button>`;
+                
+    if (role === 'customer') {
+        navLinks += `${activeOrder ? `<button onclick="renderView('orderStatus', ${activeOrder.id})" class="text-gray-600 hover:text-orange-500 font-semibold text-orange-500">Track Order</button>` : ''}
+            <button onclick="renderView('cart')" class="relative text-gray-600 hover:text-orange-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                <span id="cart-count" class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+            </button>`;
+    }
+    
+    header.innerHTML = `<div class="relative w-full flex justify-between items-center"><img src="https://i.imgur.com/Kf5xTev.png" alt="NaNi Logo" class="h-11"><div class="flex items-center space-x-4">${navLinks}<button onclick="logout()" class="text-gray-600 hover:text-orange-500">Logout</button></div>${modificationBanner}</div>`;
+}
+
+function renderView(view, data) {
+    state.currentView = view;
+    if (data !== undefined) state.activeOrderId = data;
+    const mainContent = document.getElementById('mainContent');
+    switch(view) {
+        case 'home': mainContent.innerHTML = renderHomeDashboard(); break;
+        case 'profile': mainContent.innerHTML = renderProfile(); break;
+        case 'cart': mainContent.innerHTML = renderCart(); break;
+        case 'checkout': mainContent.innerHTML = renderCheckout(); break;
+        case 'orderStatus': mainContent.innerHTML = renderOrderStatus(data); break;
+        case 'chat': mainContent.innerHTML = renderChat(data.orderId, data.recipientId); break;
+        case 'riderDeliveryView': mainContent.innerHTML = renderRiderDeliveryView(data); break;
+    }
+}
+window.renderView = renderView;
+
+// --- UNIFIED DASHBOARD & CUSTOMER VIEWS ---
+function renderHomeDashboard() {
+    const user = state.userData[state.currentUser];
+    if (!user) return `<p>Loading...</p>`;
+
+    let riderContent = '';
+    if (user.role === 'rider') {
+        riderContent = renderRiderDashboardList();
+    }
+    
+    let ownerContent = '';
+    if (user.role === 'owner') {
+        ownerContent = renderOwnerControls();
+    }
+    
+    const isOwner = user.role === 'owner';
+    let productGrid = state.products.map(product => {
+        const ownerButtons = isOwner ? `
+            <div class="absolute top-2 right-2 flex gap-2">
+                <button onclick="showEditMenuModal('${product.id}')" class="bg-blue-500 text-white p-2 rounded-full shadow-lg hover:bg-blue-600 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg>
+                </button>
+                <button onclick="showDeleteMenuModal('${product.id}')" class="bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+            </div>` : '';
+
+        return `
+        <div class="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300 relative" ${!isOwner ? `onclick="showItemModal('${product.id}')"` : ''}>
+            ${ownerButtons}
+            <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover ${isOwner ? '' : 'cursor-pointer'}">
+            <div class="p-4">
+                <h3 class="text-lg font-semibold">${product.name}</h3>
+                <p class="text-sm text-gray-500">${product.restaurant}</p>
+                <p class="text-base font-bold text-orange-500 mt-2">₱${product.price}</p>
+            </div>
+        </div>`;
+    }).join('');
+
+    return `
+        ${riderContent}
+        <div id="restaurant-view" class="p-6 rounded-xl shadow-lg bg-cover bg-center" style="background-image: url('${state.dashboardBg}')">
+            <div class="bg-black bg-opacity-50 p-6 rounded-xl">
+                ${ownerContent}
+                <h1 class="text-4xl font-bold text-white text-shadow-lg">Welcome to NaNi</h1>
+                ${renderRestaurantInfo()}
+                <h2 class="text-3xl font-bold mt-8 mb-4 text-white">Our Menu</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">${productGrid}</div>
+            </div>
+        </div>
+        ${renderReviewsSection()}
+    `;
+}
+
+function renderCart() {
+    if (state.cart.length === 0) {
+        return `<div class="text-center py-16"><h2 class="text-2xl font-semibold mb-2">Your cart is empty</h2><p class="text-gray-500 mb-6">Looks like you haven't added anything to your cart yet.</p><button onclick="renderView('home')" class="bg-orange-500 text-white font-semibold py-2 px-6 rounded-lg shadow hover:bg-orange-600">Start Shopping</button></div>`;
+    }
+    const subtotal = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const deliveryFee = 50;
+    const total = subtotal + deliveryFee;
+    const checkoutButtonText = state.modifyingOrderId ? 'Update Order' : 'Proceed to Checkout';
+
+    let cartItemsHTMLFull = state.cart.map(item => `
+        <div class="flex items-center justify-between p-4 border-b">
+            <div class="flex items-center space-x-4"><img src="${item.image}" alt="${item.name}" class="w-16 h-16 rounded-md object-cover"><div> <h4 class="font-semibold">${item.name}</h4> <p class="text-sm text-gray-500">₱${item.price}</p> </div></div>
+            <div class="flex items-center space-x-3">
+                <button onclick="updateQuantity('${item.id}', -1)" class="quantity-btn h-8 w-8 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">-</button>
+                <span class="font-semibold w-8 text-center">${item.quantity}</span>
+                <button onclick="updateQuantity('${item.id}', 1)" class="quantity-btn h-8 w-8 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">+</button>
+                <button onclick="removeFromCart('${item.id}')" class="text-red-500 hover:text-red-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
+            </div>
+        </div>`).join('');
+    return `<div class="max-w-4xl mx-auto"><h2 class="text-3xl font-bold mb-6">Your Cart</h2><div class="flex flex-col lg:flex-row gap-8"><div class="w-full lg:w-2/3 bg-white rounded-xl shadow-lg">${cartItemsHTMLFull}</div><div class="w-full lg:w-1/3"><div class="bg-white p-6 rounded-xl shadow-lg"><h3 class="text-xl font-semibold mb-4">Order Summary</h3><div class="space-y-2"><div class="flex justify-between text-gray-600"><span>Subtotal</span><span>₱${subtotal.toFixed(2)}</span></div><div class="flex justify-between text-gray-600"><span>Delivery Fee</span><span>₱${deliveryFee.toFixed(2)}</span></div><div class="flex justify-between font-bold text-lg pt-2 border-t"><span>Total</span><span>₱${total.toFixed(2)}</span></div></div><button onclick="renderView('checkout')" class="mt-6 w-full bg-orange-500 text-white font-semibold py-3 rounded-lg shadow hover:bg-orange-600">${checkoutButtonText}</button></div></div></div></div>`;
+}
+
+function renderCheckout() {
+    const user = state.userData[state.currentUser];
+    const subtotal = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const total = subtotal + 50;
+    const placeOrderButtonText = state.modifyingOrderId ? 'Update Order' : 'Place Order';
+    return `<div class="max-w-4xl mx-auto"><h2 class="text-3xl font-bold mb-6">Checkout</h2><div class="flex flex-col lg:flex-row gap-8"><div class="w-full lg:w-2/3 bg-white p-6 rounded-xl shadow-lg space-y-6"><div><h3 class="text-xl font-semibold border-b pb-2 mb-4">Delivery Details</h3><div class="space-y-2"><p><span class="font-semibold">Name:</span> ${user.name}</p><p><span class="font-semibold">Address:</span> ${user.address}</p><p><span class="font-semibold">Phone:</span> ${user.phone}</p></div></div>
+    <div>
+        <h3 class="text-xl font-semibold border-b pb-2 mb-4">Payment Method</h3>
+        <div class="space-y-4">
+            <div class="flex items-center"><input id="cod" name="paymentMethod" type="radio" class="focus:ring-orange-500 h-4 w-4 text-orange-600 border-gray-300" checked onchange="switchPaymentMethod('cod')"><label for="cod" class="ml-3 block text-sm font-medium text-gray-700">Cash on Delivery</label></div>
+            <div class="flex items-center"><input id="online" name="paymentMethod" type="radio" class="focus:ring-orange-500 h-4 w-4 text-orange-600 border-gray-300" onchange="switchPaymentMethod('online')"><label for="online" class="ml-3 block text-sm font-medium text-gray-700">Online Payment (GCash)</label></div>
+            <div id="codDetails" class="pl-7 space-y-2"><label for="cashAmount" class="block text-sm font-medium text-gray-700">How much cash are you paying with? (Optional)</label><input type="number" id="cashAmount" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" placeholder="e.g., 500"><p class="text-xs text-gray-500">This helps the rider prepare your exact change.</p></div>
+            <div id="onlineDetails" class="hidden pl-7 space-y-4"><p class="font-semibold text-gray-800">Pay with GCash</p><div class="flex items-center"><input id="gcashQR" name="gcashMethod" type="radio" class="focus:ring-orange-500 h-4 w-4 text-orange-600 border-gray-300" checked onchange="switchGcashMethod('qr')"><label for="gcashQR" class="ml-3 block text-sm font-medium text-gray-700">Pay using QR</label></div><div class="flex items-center"><input id="gcashOnline" name="gcashMethod" type="radio" class="focus:ring-orange-500 h-4 w-4 text-orange-600 border-gray-300" onchange="switchGcashMethod('online')"><label for="gcashOnline" class="ml-3 block text-sm font-medium text-gray-700">Pay Online</label></div><div id="gcashQRDetails" class="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">To pay in person when the rider arrives, open the GCash app to show the rider your barcode then the rider will scan the code.</div><div id="gcashOnlineDetails" class="hidden"><button class="w-full bg-blue-500 text-white font-semibold py-2 rounded-lg shadow hover:bg-blue-600">Open GCash to Pay</button><p class="text-xs text-gray-500 text-center mt-2">You can pay when the rider arrives.</p></div></div>
+        </div>
+    </div>
+    </div><div class="w-full lg:w-1/3"><div class="bg-white p-6 rounded-xl shadow-lg"><h3 class="text-xl font-semibold mb-4">Order Summary</h3><div class="space-y-2 text-sm">${state.cart.map(i => `<div class="flex justify-between"><span>${i.quantity} x ${i.name}</span><span>₱${(i.quantity * i.price).toFixed(2)}</span></div>`).join('')}</div><div class="space-y-2 mt-4 pt-4 border-t"><div class="flex justify-between text-gray-600"><span>Subtotal</span><span>₱${subtotal.toFixed(2)}</span></div><div class="flex justify-between text-gray-600"><span>Delivery Fee</span><span>₱50.00</span></div><div class="flex justify-between font-bold text-lg pt-2 border-t"><span>Total</span><span>₱${total.toFixed(2)}</span></div></div><button onclick="placeOrUpdateOrder()" class="mt-6 w-full bg-orange-500 text-white font-semibold py-3 rounded-lg shadow hover:bg-orange-600">${placeOrderButtonText}</button></div></div></div></div>`;
+}
+
+function renderOrderStatus(orderId) {
+    const order = state.orders.find(o => o.id === orderId);
+    if (!order) return `<p>Order not found.</p>`;
+    const rider = state.userData[order.riderId];
+    let statusSpecificContent = '';
+
+    const statuses = ['Accepted', 'Preparing', 'Out for Delivery', 'Delivered'];
+    const currentStatusIndex = statuses.indexOf(order.status);
+    const progressPercentage = currentStatusIndex >= 0 ? (currentStatusIndex / (statuses.length - 1)) * 100 : 0;
+    
+    let progressBarHTML = `<div class="progress-container">
+        <div class="progress-bar"><div class="progress-bar-fill" style="width: ${progressPercentage}%"></div></div>
+        ${statuses.map((s, i) => `<div class="progress-step ${i <= currentStatusIndex ? 'active' : ''}"><span class="progress-step-label">${s}</span></div>`).join('')}
+    </div>`;
+
+    if (order.status === 'Cancelled') {
+        statusSpecificContent = `<div class="text-center p-4 bg-red-100 rounded-lg text-red-700">This order has been cancelled.</div>`;
+    } else if (order.status === 'Delivered') {
+        statusSpecificContent = `<button onclick="showReviewModal(${order.id})" class="w-full bg-green-500 text-white font-semibold py-3 rounded-lg shadow hover:bg-green-600">Write a Review</button>`;
+    } else if (order.status === 'Reviewed') {
+        statusSpecificContent = `<div class="text-center p-4 bg-green-100 rounded-lg text-green-700">Your review has been submitted. Thank you!</div>`;
+    } else {
+        const canModify = !['Out for Delivery', 'Delivered'].includes(order.status);
+        statusSpecificContent = `
+            ${canModify ? `<button onclick="startOrderModification(${order.id})" class="w-full bg-blue-500 text-white font-semibold py-2 rounded-lg shadow hover:bg-blue-600 mb-2">Modify Order</button>` : ''}
+            ${canModify ? `<button onclick="showCancelModal(${order.id})" class="w-full bg-red-500 text-white font-semibold py-2 rounded-lg shadow hover:bg-red-600 mb-4">Cancel Order</button>` : ''}
+            <div class="mt-4">${renderChat(orderId, order.riderId)}</div>`;
+    }
+
+    return `<div class="max-w-4xl mx-auto"><h2 class="text-3xl font-bold mb-2">Tracking Order #${order.id}</h2><p class="text-lg text-gray-600 mb-6">Status: <span class="font-semibold text-orange-500">${order.status}</span></p>
+    <div class="bg-white p-6 rounded-xl shadow-lg mb-8">${progressBarHTML}</div>
+    <div class="flex flex-col lg:flex-row gap-8">
+        <div class="w-full lg:w-2/3 bg-white p-6 rounded-xl shadow-lg space-y-6"><div><h3 class="text-xl font-semibold border-b pb-2 mb-4">Your Rider</h3><div class="flex items-center space-x-4"><img src="${rider.profilePic}" class="h-16 w-16 rounded-full object-cover"><div><p class="font-bold">${rider.name}</p><p class="text-sm text-gray-500">License: ${rider.license}</p><p class="text-sm text-gray-500">Plate No: ${rider.plateNumber}</p><div class="flex gap-2 mt-1"><img src="${rider.licenseImg}" onclick="showImageModal('${rider.licenseImg}')" class="h-10 w-16 object-cover rounded-md cursor-pointer hover:opacity-80"><img src="${rider.plateNumberImg}" onclick="showImageModal('${rider.plateNumberImg}')" class="h-10 w-16 object-cover rounded-md cursor-pointer hover:opacity-80"></div></div></div></div><div><h3 class="text-xl font-semibold border-b pb-2 mb-4">Live Location</h3><div class="bg-gray-200 h-64 rounded-lg flex items-center justify-center text-gray-500">Map Placeholder</div></div></div>
+        <div class="w-full lg:w-1/3"><div class="bg-white p-6 rounded-xl shadow-lg"><h3 class="text-xl font-semibold mb-4">Order Actions</h3>${statusSpecificContent}</div></div>
+    </div></div>`;
+}
+
+// --- ROLE-SPECIFIC CONTENT ---
+function renderRiderDashboardList() {
+    const assignedDeliveries = state.orders.filter(o => o.riderId === state.currentUser);
+    let deliveriesHTML = assignedDeliveries.length > 0 ? assignedDeliveries.map(d => {
+        const customer = state.userData[d.customerId];
+        return `<div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg cursor-pointer transition-shadow" onclick="renderView('riderDeliveryView', ${d.id})">
+            <p class="font-semibold">${d.restaurant} to ${customer.address}</p>
+            <p class="text-sm text-gray-500">Customer: ${customer.name} | Status: <span class="font-medium text-orange-500">${d.status}</span></p>
+        </div>`
+    }).join('') : `<p class="text-gray-500 text-center">No deliveries assigned yet.</p>`;
+    return `<div class="mb-8 bg-white p-6 rounded-xl shadow-lg"><h2 class="text-2xl font-bold mb-4">Your Deliveries</h2><div class="space-y-4">${deliveriesHTML}</div></div>`;
+}
+
+function renderRiderDeliveryView(orderId) {
+    const order = state.orders.find(o => o.id === orderId);
+    if (!order) {
+        renderView('home');
+        return `<p>Order not found.</p>`;
+    }
+    const customer = state.userData[order.customerId];
+    const ownerKey = Object.keys(state.userData).find(key => state.userData[key].restaurant === order.restaurant);
+
+    let actionButtonHTML = '';
+    if (order.status === 'Preparing') {
+        actionButtonHTML = `<button onclick="markAsPickedUp(${order.id})" class="w-full bg-orange-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-600 transition-colors">Confirm Pickup</button>`;
+    } else if (order.status === 'Out for Delivery') {
+        actionButtonHTML = `<button onclick="markAsDelivered(${order.id})" class="w-full bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors">Confirm Delivery</button>`;
+    } else {
+        actionButtonHTML = `<button class="w-full bg-gray-400 text-white font-bold py-3 px-4 rounded-lg cursor-not-allowed" disabled>${order.status}</button>`;
+    }
+
+    return `
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-gray-200 h-64 rounded-lg flex items-center justify-center text-gray-500 mb-4">Map Placeholder</div>
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <div class="space-y-4">
+                <!-- Pickup Info -->
+                <div class="flex items-start space-x-4">
+                    <div class="bg-gray-200 h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1"><svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 8v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg></div>
+                    <div>
+                        <p class="font-semibold text-gray-800">Pickup: ${order.restaurant}</p>
+                        <p class="text-sm text-gray-500">${state.userData.owner1.address}</p>
+                    </div>
+                </div>
+                <!-- Drop-off Info -->
+                <div class="flex items-start space-x-4">
+                    <div class="bg-gray-200 h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1"><svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div>
+                    <div>
+                        <p class="font-semibold text-gray-800">Drop-off: ${customer.name}</p>
+                        <p class="text-sm text-gray-500">${customer.address}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t my-4"></div>
+
+            <!-- Order Summary -->
+            <div>
+                 <h3 class="font-semibold text-lg mb-2">Order Summary</h3>
+                 <div class="space-y-1 text-sm text-gray-600">
+                    ${order.items.map(item => `<div class="flex justify-between"><span>${item.quantity}x ${item.name}</span> <span>₱${(item.price * item.quantity).toFixed(2)}</span></div>`).join('')}
+                    <div class="flex justify-between font-bold text-gray-800 pt-2 border-t"><span>Total</span> <span>₱${order.total.toFixed(2)}</span></div>
+                 </div>
+            </div>
+            
+            <div class="border-t my-4"></div>
+            
+            <!-- Chat Buttons -->
+             <div class="flex gap-2">
+                 <button onclick="renderView('chat', {orderId: ${order.id}, recipientId: '${order.customerId}'})" class="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 text-sm">Chat with Customer</button>
+                 <button onclick="renderView('chat', {orderId: ${order.id}, recipientId: '${ownerKey}'})" class="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 text-sm">Chat with Owner</button>
+            </div>
+        </div>
+        <div class="mt-4">
+            ${actionButtonHTML}
+        </div>
+    </div>
+    `;
+}
+
+
+function renderOwnerControls() {
+    const owner = state.userData[state.currentUser];
+    const ordersForRestaurant = state.orders.filter(o => o.restaurant === owner.restaurant);
+    const ordersHTML = ordersForRestaurant.map(o => {
+        const rider = state.userData[o.riderId];
+        return `
+        <div class="bg-white p-4 rounded-lg shadow flex justify-between items-center text-sm">
+             <div>
+                <p class="font-semibold">Order #${o.id} - ${o.status}</p>
+                <p class="text-xs text-gray-500">Rider: ${rider.name}</p>
+            </div>
+            <button onclick="renderView('chat', {orderId: ${o.id}, recipientId: '${o.riderId}'})" class="bg-gray-200 px-3 py-1 rounded-lg hover:bg-gray-300">Chat with Rider</button>
+        </div>`
+    }).join('');
+
+    return `
+    <div class="bg-white bg-opacity-80 p-6 rounded-xl shadow-lg mb-8 backdrop-blur-sm">
+         <h2 class="text-2xl font-bold mb-4">Restaurant Settings</h2>
+         <div class="flex flex-col sm:flex-row gap-4 items-center">
+            <button onclick="showAddMenuModal()" class="w-full sm:w-auto bg-green-500 text-white font-semibold px-4 py-2 rounded-lg shadow hover:bg-green-600">Add New Item</button>
+            <button onclick="showChangeBgModal()" class="w-full sm:w-auto bg-gray-700 text-white font-semibold px-4 py-2 rounded-lg shadow hover:bg-gray-800">Change Background</button>
+         </div>
+         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
+            <div class="bg-gray-100 p-4 rounded-lg shadow-inner"><p class="text-gray-600">Today's Orders</p><p class="text-2xl font-bold">${ordersForRestaurant.length}</p></div>
+            <div class="bg-gray-100 p-4 rounded-lg shadow-inner"><p class="text-gray-600">Pending</p><p class="text-2xl font-bold">${ordersForRestaurant.filter(o => o.status === 'Accepted' || o.status === 'Preparing').length}</p></div>
+            <div class="bg-gray-100 p-4 rounded-lg shadow-inner"><p class="text-gray-600">Revenue</p><p class="text-2xl font-bold">₱${ordersForRestaurant.reduce((t, o) => t + o.total, 0).toFixed(2)}</p></div>
+        </div>
+        <div>
+             <h3 class="text-xl font-bold mb-2">Active Orders</h3>
+             <div class="space-y-2">${ordersHTML || '<p class="text-sm text-gray-500">No active orders.</p>'}</div>
+        </div>
+    </div>
+    `;
+}
+
+function renderRestaurantInfo() {
+    const owner = state.userData.owner1; // Assuming a single restaurant for now
+    return `
+    <div class="mt-2 mb-6 text-white text-sm space-y-2">
+        <div class="flex items-center gap-3"><i class="fa-solid fa-location-dot w-4 text-center"></i><span>${owner.address}</span></div>
+        <div class="flex items-center gap-3"><i class="fa-solid fa-phone w-4 text-center"></i><span>${owner.phone}</span></div>
+        <div class="flex items-center gap-3"><i class="fa-brands fa-facebook w-4 text-center"></i><a href="https://${owner.facebook}" target="_blank" class="hover:underline">${owner.facebook}</a></div>
+    </div>`;
+}
+
+function renderReviewsSection() {
+    if(state.reviews.length === 0) return '';
+    
+    const reviewsHTML = state.reviews.map(review => {
+        const itemRatingsHTML = Object.entries(review.itemRatings).map(([itemName, rating]) => `
+            <div class="flex justify-between text-sm text-gray-600">
+                <span>${itemName}</span>
+                <div class="star-rating read-only">${[5,4,3,2,1].map(star => `<input disabled type="radio" id="rev-item-${review.id}-${itemName}-${star}" ${rating == star ? 'checked' : ''}><label for="rev-item-${review.id}-${itemName}-${star}">★</label>`).join('')}</div>
+            </div>
+        `).join('');
+
+        return `
+        <div class="bg-white p-4 rounded-lg shadow">
+            <div class="flex items-center mb-2">
+                <p class="font-semibold">${review.customerId}</p>
+                <div class="star-rating read-only ml-auto">${[5,4,3,2,1].map(star => `<input disabled type="radio" id="rev-resto-${review.id}-${star}" ${review.restaurantRating == star ? 'checked' : ''}><label for="rev-resto-${review.id}-${star}">★</label>`).join('')}</div>
+            </div>
+            <p class="text-gray-700 italic mb-3">"${review.comment}"</p>
+            <div class="border-t pt-2 space-y-1">${itemRatingsHTML}</div>
+        </div>
+        `;
+    }).join('');
+
+    return `
+    <div class="mt-8">
+        <h2 class="text-3xl font-bold mb-4 text-gray-800">What Our Customers Are Saying</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            ${reviewsHTML}
+        </div>
+    </div>
+    `;
+}
+
+
+// --- SHARED/MODAL VIEWS ---
+function renderProfile() {
+    const user = state.userData[state.currentUser];
+    const isRider = user.role === 'rider';
+    
+    if (isRider) {
+        return `
+        <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg space-y-6">
+            <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+                <img class="h-24 w-24 rounded-full object-cover" src="${user.profilePic}" alt="Profile picture">
+                <div class="flex-1 text-center sm:text-left">
+                    <h2 class="text-2xl font-bold">${user.name}</h2>
+                    <p class="text-gray-600">${user.vehicle}</p>
+                    <p class="text-gray-600">${user.phone}</p>
+                </div>
+                <button onclick="editProfile()" class="px-4 py-2 bg-orange-100 text-orange-600 text-sm font-medium rounded-md hover:bg-orange-200 self-center">Edit Profile</button>
+            </div>
+            <div class="border-t pt-6">
+                <h3 class="text-lg font-semibold mb-4">Rider Documents</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="font-medium">Driver's License</p>
+                        <p class="text-sm text-gray-500 mb-2">${user.license}</p>
+                        <img src="${user.licenseImg}" onclick="showImageModal('${user.licenseImg}')" class="w-full h-auto object-cover rounded-lg cursor-pointer hover:opacity-80">
+                    </div>
+                    <div>
+                        <p class="font-medium">Plate Number</p>
+                        <p class="text-sm text-gray-500 mb-2">${user.plateNumber}</p>
+                        <img src="${user.plateNumberImg}" onclick="showImageModal('${user.plateNumberImg}')" class="w-full h-auto object-cover rounded-lg cursor-pointer hover:opacity-80">
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    } else {
+         const addressLabel = user.role === 'owner' ? 'Restaurant' : 'Address';
+         const addressValue = user.role === 'owner' ? user.restaurant : user.address;
+         return `<div class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-lg"><div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6"><img class="h-24 w-24 rounded-full object-cover" src="${user.profilePic}" alt="Profile picture"><div class="flex-1 text-center sm:text-left space-y-1"><h2 id="profileName" class="text-2xl font-bold">${user.name}</h2><p class="text-gray-600"><span class="font-semibold">${addressLabel}:</span> <span id="profileAddress">${addressValue}</span></p><p class="text-gray-600"><span class="font-semibold">Phone:</span> <span id="profilePhone">${user.phone}</span></p></div><button onclick="editProfile()" class="px-4 py-2 bg-orange-100 text-orange-600 text-sm font-medium rounded-md hover:bg-orange-200 self-start sm:self-center">Edit Profile</button></div></div>`;
+    }
+}
+
+function renderChat(orderId, recipientId) {
+    const recipient = state.userData[recipientId];
+    if (!recipient) {
+        console.error("Recipient not found for chat:", recipientId);
+        return `<p class="text-red-500">Error: Chat recipient not found.</p>`;
+    }
+    if (!state.chatMessages[orderId]) state.chatMessages[orderId] = [];
+    const messages = state.chatMessages[orderId].filter(m => (m.from === state.currentUser && m.to === recipientId) || (m.from === recipientId && m.to === state.currentUser));
+    let messagesHTML = messages.map(m => `<div class="flex ${m.from === state.currentUser ? 'justify-end' : 'justify-start'}"><div class="max-w-xs md:max-w-md px-4 py-2 rounded-xl ${m.from === state.currentUser ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-800'}">${m.text}</div></div>`).join('');
+
+    const isFullView = state.currentView === 'chat';
+    let headerHTML = `<h3 class="font-semibold text-lg text-center flex-grow">Chat with ${recipient.name}</h3>`;
+
+    if (isFullView) {
+        headerHTML = `
+            <button onclick="renderView('home')" class="text-sm text-gray-600 hover:text-gray-800 absolute left-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            ${headerHTML}
+        `;
+    }
+
+    return `
+    <div class="bg-white rounded-xl shadow-lg">
+        <div class="p-4 border-b flex justify-center items-center relative">${headerHTML}</div>
+        <div id="chat-messages" class="p-4 h-64 overflow-y-auto space-y-4">${messagesHTML || '<p class="text-center text-gray-400">No messages yet.</p>'}</div>
+        <div class="p-4 border-t flex gap-2">
+            <input type="text" id="chat-input" class="flex-grow border-gray-300 rounded-lg shadow-sm" placeholder="Type a message...">
+            <button onclick="sendChatMessage(${orderId}, '${recipientId}')" class="bg-orange-500 text-white font-semibold px-4 py-2 rounded-lg">Send</button>
+        </div>
+    </div>`;
+}
+
+// --- ACTIONS & LOGIC ---
+function createImageUploadHTML(id, label, currentSrc) {
+    return `<div class="space-y-2"><label class="text-sm font-medium text-gray-700">${label}</label><img id="preview-${id}" src="${currentSrc}" class="h-20 w-32 object-cover rounded-md border"><input type="text" id="url-${id}" class="w-full text-xs px-2 py-1 border rounded-md" placeholder="Or paste image URL" value="${currentSrc}"><input type="file" id="file-${id}" class="text-xs" onchange="handleImagePreview(event, 'preview-${id}', 'url-${id}')"></div>`;
+}
+window.createImageUploadHTML = createImageUploadHTML;
+
+function editProfile() {
+    const user = state.userData[state.currentUser];
+    const mainContent = document.getElementById('mainContent');
+    let content = '';
+
+    if (user.role === 'rider') {
+        content = `
+        <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg space-y-6">
+             <h2 class="text-2xl font-bold mb-4">Edit Profile</h2>
+             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-1">${createImageUploadHTML('profilePic', 'Profile Picture', user.profilePic)}</div>
+                <div class="md:col-span-2 space-y-4">
+                    <div><label class="text-sm font-medium text-gray-700">Name</label><input id="editName" class="mt-1 w-full px-3 py-2 border rounded-md" value="${user.name}"></div>
+                    <div><label class="text-sm font-medium text-gray-700">Vehicle</label><input id="editAddress" class="mt-1 w-full px-3 py-2 border rounded-md" value="${user.vehicle}"></div>
+                    <div><label class="text-sm font-medium text-gray-700">Phone</label><input id="editPhone" class="mt-1 w-full px-3 py-2 border rounded-md" value="${user.phone}"></div>
+                </div>
+            </div>
+            <div class="border-t pt-6">
+                 <h3 class="text-lg font-semibold mb-4">Rider Documents</h3>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div><label class="text-sm font-medium text-gray-700">License Number</label><input id="editLicense" class="mt-1 w-full px-3 py-2 border rounded-md" value="${user.license}">${createImageUploadHTML('license', 'License Image', user.licenseImg)}</div>
+                    <div><label class="text-sm font-medium text-gray-700">Plate Number</label><input id="editPlate" class="mt-1 w-full px-3 py-2 border rounded-md" value="${user.plateNumber}">${createImageUploadHTML('plate', 'Plate Image', user.plateNumberImg)}</div>
+                 </div>
+            </div>
+            <div class="flex justify-end gap-4 pt-6 border-t">
+                <button onclick="renderView('profile')" class="px-6 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300">Cancel</button>
+                <button onclick="saveProfile()" class="px-6 py-2 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600">Save Changes</button>
+            </div>
+        </div>`;
+    } else {
+        const addressLabel = user.role === 'owner' ? 'Restaurant' : 'Address';
+        const addressValue = user.role === 'owner' ? user.restaurant : user.address;
+        const addressInput = user.role === 'owner' 
+            ? `<input id="editAddress" class="mt-1 w-full px-3 py-2 border rounded-md bg-gray-100 cursor-not-allowed text-gray-500" value="${addressValue}" disabled>`
+            : `<input id="editAddress" class="mt-1 w-full px-3 py-2 border rounded-md" value="${addressValue}">`;
+
+        content = `
+        <div class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-lg space-y-6">
+            <h2 class="text-2xl font-bold mb-4">Edit Profile</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-1">${createImageUploadHTML('profilePic', 'Profile Picture', user.profilePic)}</div>
+                <div class="md:col-span-2 space-y-4">
+                    <div><label class="text-sm font-medium text-gray-700">Name</label><input id="editName" class="mt-1 w-full px-3 py-2 border rounded-md" value="${user.name}"></div>
+                    <div><label class="text-sm font-medium text-gray-700">${addressLabel}</label>${addressInput}</div>
+                    <div><label class="text-sm font-medium text-gray-700">Phone</label><input id="editPhone" class="mt-1 w-full px-3 py-2 border rounded-md" value="${user.phone}"></div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-4 pt-6 border-t">
+                 <button onclick="renderView('profile')" class="px-6 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300">Cancel</button>
+                <button onclick="saveProfile()" class="px-6 py-2 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600">Save Changes</button>
+            </div>
+        </div>`;
+    }
+    mainContent.innerHTML = content;
+}
+window.editProfile = editProfile;
+
+function saveProfile() {
+    const user = state.userData[state.currentUser];
+    user.name = document.getElementById('editName').value;
+    user.phone = document.getElementById('editPhone').value;
+    user.profilePic = document.getElementById('url-profilePic').value;
+    
+    if (user.role !== 'owner') {
+        const secondaryField = document.getElementById('editAddress').value;
+        if (user.role === 'customer') {
+            user.address = secondaryField;
+        } else if (user.role === 'rider') {
+            user.vehicle = secondaryField;
+            user.license = document.getElementById('editLicense').value;
+            user.plateNumber = document.getElementById('editPlate').value;
+            user.licenseImg = document.getElementById('url-license').value;
+            user.plateNumberImg = document.getElementById('url-plate').value;
+        }
+    }
+    renderView('profile');
+}
+window.saveProfile = saveProfile;
+
+function placeOrUpdateOrder() {
+    const subtotal = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    
+    if(state.modifyingOrderId) {
+        // Update existing order
+        const order = state.orders.find(o => o.id === state.modifyingOrderId);
+        if(order) {
+            order.items = [...state.cart];
+            order.total = subtotal + 50;
+        }
+        const orderId = state.modifyingOrderId;
+        state.modifyingOrderId = null;
+        state.cart = [];
+        renderView('orderStatus', orderId);
+        renderHeader(state.userData[state.currentUser].role); // Re-render header to remove banner
+    } else {
+        // Place new order
+        let paymentDetails = {};
+        const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').id;
+
+        if (paymentMethod === 'cod') {
+            paymentDetails.method = 'Cash on Delivery';
+            paymentDetails.cashAmount = document.getElementById('cashAmount').value || 'Not specified';
+        } else {
+            paymentDetails.method = 'Online Payment (GCash)';
+            const gcashMethod = document.querySelector('input[name="gcashMethod"]:checked').id;
+            paymentDetails.detail = gcashMethod === 'gcashQR' ? 'Pay via QR' : 'Pay Online';
+        }
+
+        const newOrder = { 
+            id: Date.now(), 
+            customerId: state.currentUser, 
+            riderId: 'rider1', 
+            restaurant: state.cart[0].restaurant, 
+            items: [...state.cart], 
+            total: subtotal + 50, 
+            status: 'Accepted',
+            payment: paymentDetails
+        };
+        state.orders.push(newOrder);
+        state.cart = [];
+        updateCartCount();
+        renderView('orderStatus', newOrder.id);
+        simulateOrderStatusUpdates(newOrder.id);
+    }
+}
+window.placeOrUpdateOrder = placeOrUpdateOrder;
+
+function startOrderModification(orderId) {
+    const order = state.orders.find(o => o.id === orderId);
+    if(order) {
+        state.modifyingOrderId = orderId;
+        state.cart = JSON.parse(JSON.stringify(order.items)); // Deep copy
+        renderView('home');
+        renderHeader(state.userData[state.currentUser].role); // Render header to show banner
+    }
+}
+window.startOrderModification = startOrderModification;
+
+function confirmCancellation(orderId) {
+    const order = state.orders.find(o => o.id === orderId);
+    const reason = document.querySelector('input[name="cancelReason"]:checked').value;
+    if (order) {
+        order.status = 'Cancelled';
+        order.cancelReason = reason;
+        console.log(`Order ${orderId} cancelled. Reason: ${reason}`);
+        closeModal();
+        renderView('home');
+    }
+}
+window.confirmCancellation = confirmCancellation;
+
+
+function simulateOrderStatusUpdates(orderId) {
+    const order = state.orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    // Simulate "Preparing"
+    setTimeout(() => {
+        if (order.status === 'Accepted') {
+            order.status = 'Preparing';
+            if (state.currentView === 'orderStatus' && state.activeOrderId === orderId) {
+                renderView('orderStatus', orderId);
+            }
+        }
+    }, 5000); // 5 seconds
+
+    // Simulate "Out for Delivery"
+    setTimeout(() => {
+        if (order.status === 'Preparing') {
+            order.status = 'Out for Delivery';
+            if (state.currentView === 'orderStatus' && state.activeOrderId === orderId) {
+                renderView('orderStatus', orderId);
+            }
+        }
+    }, 12000); // 12 seconds
+    
+     // Simulate "Delivered"
+    setTimeout(() => {
+        if (order.status === 'Out for Delivery') {
+            order.status = 'Delivered';
+            if (state.currentView === 'orderStatus' && state.activeOrderId === orderId) {
+                renderView('orderStatus', orderId);
+            }
+        }
+    }, 20000); // 20 seconds
+}
+
+function markAsPickedUp(orderId) {
+    const order = state.orders.find(o => o.id === orderId);
+    if (order) {
+        order.status = 'Out for Delivery';
+        renderView('riderDeliveryView', orderId);
+    }
+}
+window.markAsPickedUp = markAsPickedUp;
+
+
+function markAsDelivered(orderId) {
+    const order = state.orders.find(o => o.id === orderId);
+    if(order) { 
+        order.status = 'Delivered'; 
+        renderView('riderDeliveryView', orderId);
+    }
+}
+window.markAsDelivered = markAsDelivered;
+
+function sendChatMessage(orderId, recipientId) {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text) { if (!state.chatMessages[orderId]) state.chatMessages[orderId] = []; state.chatMessages[orderId].push({ from: state.currentUser, to: recipientId, text }); input.value = ''; renderView('chat', { orderId, recipientId }); }
+}
+window.sendChatMessage = sendChatMessage;
+
+// --- MODALS ---
+function showModal(content, size = 'md') {
+    const sizeClass = {sm: 'md:max-w-sm', md: 'md:max-w-md', lg: 'md:max-w-lg'}[size];
+    document.getElementById('universalModalContent').className = `bg-white rounded-lg shadow-xl w-11/12 ${sizeClass} mx-auto animate-pop-in`;
+    document.getElementById('universalModalContent').innerHTML = content;
+    document.getElementById('universalModal').classList.add('active');
+}
+window.showModal = showModal;
+
+function closeModal() { document.getElementById('universalModal').classList.remove('active'); }
+window.closeModal = closeModal;
+
+function showItemModal(productId) {
+    const product = state.products.find(p => p.id === productId);
+    showModal(`<div class="p-0"><img src="${product.image}" alt="${product.name}" class="w-full h-64 object-cover rounded-t-lg"><div class="p-6"><div class="flex justify-between items-start"><div><h2 class="text-2xl font-bold">${product.name}</h2><p class="text-md text-gray-500">${product.restaurant}</p></div><p class="text-2xl font-bold text-orange-500">₱${product.price}</p></div><p class="text-gray-600 mt-4">${product.description}</p><div class="flex justify-end items-center mt-6 gap-4"><button onclick="closeModal()" class="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Close</button><button onclick="addToCart('${product.id}'); closeModal();" class="px-6 py-2 bg-orange-500 text-white font-semibold rounded-lg shadow hover:bg-orange-600">Add to Cart</button></div></div></div>`);
+}
+window.showItemModal = showItemModal;
+
+function showCancelModal(orderId) {
+    const reasons = [ "Placed order by mistake", "Order is taking too long", "Found a better option", "Changed my mind", "Other" ];
+    const reasonsHTML = reasons.map((r, i) => `<div><input type="radio" id="reason-${i}" name="cancelReason" value="${r}" class="mr-2" ${i === 0 ? 'checked' : ''}><label for="reason-${i}">${r}</label></div>`).join('');
+    showModal(`<div class="p-6"><h3 class="text-xl font-semibold mb-4">Cancel Order</h3><p class="text-gray-600 mb-4">Please let us know why you're cancelling:</p><div class="space-y-2 mb-6">${reasonsHTML}</div><div class="flex justify-end gap-4"><button onclick="closeModal()" class="px-4 py-2 bg-gray-200 rounded-lg">Keep Order</button><button onclick="confirmCancellation(${orderId})" class="px-4 py-2 bg-red-500 text-white rounded-lg">Confirm Cancellation</button></div></div>`);
+}
+window.showCancelModal = showCancelModal;
+
+
+function showEditMenuModal(productId) {
+    const product = state.products.find(p => p.id === productId);
+    showModal(`<div class="p-6 space-y-4"><h3 class="text-xl font-semibold">Edit Menu Item</h3>${createImageUploadHTML('menu-item', 'Item Image', product.image)}<div><label class="text-sm">Name</label><input id="edit-item-name" class="w-full border-gray-300 rounded-md" value="${product.name}"></div><div><label class="text-sm">Price</label><input id="edit-item-price" type="number" class="w-full border-gray-300 rounded-md" value="${product.price}"></div><div><label class="text-sm">Description</label><textarea id="edit-item-desc" class="w-full border-gray-300 rounded-md h-24">${product.description}</textarea></div><div class="flex justify-end gap-4"><button onclick="closeModal()">Cancel</button><button onclick="saveMenuItem('${productId}')" class="bg-orange-500 text-white px-4 py-2 rounded-lg">Save</button></div></div>`);
+}
+window.showEditMenuModal = showEditMenuModal;
+
+async function saveMenuItem(productId) {
+    const productRef = doc(productsCollection, productId);
+    const updatedData = {
+        name: document.getElementById('edit-item-name').value,
+        price: parseFloat(document.getElementById('edit-item-price').value),
+        description: document.getElementById('edit-item-desc').value,
+        image: document.getElementById('url-menu-item').value
+    };
+    await updateDoc(productRef, updatedData);
+    closeModal();
+}
+window.saveMenuItem = saveMenuItem;
+
+function showAddMenuModal() {
+    showModal(`<div class="p-6 space-y-4"><h3 class="text-xl font-semibold">Add New Menu Item</h3>${createImageUploadHTML('menu-item', 'Item Image', 'https://placehold.co/600x400/E5E7EB/4B5563?text=New+Item')}<div><label class="text-sm">Name</label><input id="add-item-name" class="w-full border-gray-300 rounded-md" value=""></div><div><label class="text-sm">Price</label><input id="add-item-price" type="number" class="w-full border-gray-300 rounded-md" value=""></div><div><label class="text-sm">Description</label><textarea id="add-item-desc" class="w-full border-gray-300 rounded-md h-24"></textarea></div><div class="flex justify-end gap-4"><button onclick="closeModal()">Cancel</button><button onclick="saveNewMenuItem()" class="bg-green-500 text-white px-4 py-2 rounded-lg">Save New Item</button></div></div>`);
+}
+window.showAddMenuModal = showAddMenuModal;
+
+async function saveNewMenuItem() {
+    const owner = state.userData[state.currentUser];
+    const newItemData = {
+        name: document.getElementById('add-item-name').value,
+        price: parseFloat(document.getElementById('add-item-price').value),
+        description: document.getElementById('add-item-desc').value,
+        image: document.getElementById('url-menu-item').value,
+        restaurant: owner.restaurant 
+    };
+    if (newItemData.name && newItemData.price) {
+        await addDoc(productsCollection, newItemData);
+        closeModal();
+    } else {
+        alert("Please fill in at least the name and price.");
+    }
+}
+window.saveNewMenuItem = saveNewMenuItem;
+
+function showDeleteMenuModal(productId) {
+    showModal(`<div class="p-6 text-center">
+        <h3 class="text-lg font-semibold mb-2">Are you sure?</h3>
+        <p class="text-gray-600 mb-6">Do you really want to delete this item? This action cannot be undone.</p>
+        <div class="flex justify-center gap-4">
+            <button onclick="closeModal()" class="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+            <button onclick="deleteMenuItem('${productId}')" class="px-6 py-2 bg-red-500 text-white font-semibold rounded-lg shadow hover:bg-red-600">Delete</button>
+        </div>
+    </div>`, 'sm');
+}
+window.showDeleteMenuModal = showDeleteMenuModal;
+
+async function deleteMenuItem(productId) {
+    const productRef = doc(productsCollection, productId);
+    await deleteDoc(productRef);
+    closeModal();
+}
+window.deleteMenuItem = deleteMenuItem;
+
+function showChangeBgModal() {
+    showModal(`<div class="p-6 space-y-4">
+        <h3 class="text-xl font-semibold">Change Background Image</h3>
+        ${createImageUploadHTML('dashboard-bg', 'Background Image', state.dashboardBg)}
+        <div class="flex justify-end gap-4">
+            <button onclick="closeModal()">Cancel</button>
+            <button onclick="saveDashboardBg()" class="bg-orange-500 text-white px-4 py-2 rounded-lg">Save</button>
+        </div>
+    </div>`);
+}
+window.showChangeBgModal = showChangeBgModal;
+
+async function saveDashboardBg() {
+    const newBgUrl = document.getElementById('url-dashboard-bg').value;
+    state.dashboardBg = newBgUrl;
+    await setDoc(settingsDoc, { backgroundUrl: newBgUrl });
+    closeModal();
+    renderView('home');
+}
+window.saveDashboardBg = saveDashboardBg;
+
+function showReviewModal(orderId) {
+    const order = state.orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const itemsHTML = order.items.map(item => `
+        <div class="flex justify-between items-center border-b py-2">
+            <span class="text-gray-700">${item.name}</span>
+            <div class="star-rating">
+                <input type="radio" id="food-${item.id}-5" name="food-rating-${item.id}" value="5"><label for="food-${item.id}-5">★</label>
+                <input type="radio" id="food-${item.id}-4" name="food-rating-${item.id}" value="4"><label for="food-${item.id}-4">★</label>
+                <input type="radio" id="food-${item.id}-3" name="food-rating-${item.id}" value="3"><label for="food-${item.id}-3">★</label>
+                <input type="radio" id="food-${item.id}-2" name="food-rating-${item.id}" value="2"><label for="food-${item.id}-2">★</label>
+                <input type="radio" id="food-${item.id}-1" name="food-rating-${item.id}" value="1" checked><label for="food-${item.id}-1">★</label>
+            </div>
+        </div>
+    `).join('');
+
+    showModal(`<div class="p-6 space-y-4">
+        <h3 class="text-xl font-semibold text-center">How was your order?</h3>
+        
+        <div class="space-y-2">${itemsHTML}</div>
+
+        <div class="border-t pt-4 mt-4">
+             <p class="text-center font-medium mb-2">Overall Restaurant Experience</p>
+             <div class="star-rating large justify-center">
+                <input type="radio" id="resto-5" name="resto-rating" value="5"><label for="resto-5">★</label>
+                <input type="radio" id="resto-4" name="resto-rating" value="4"><label for="resto-4">★</label>
+                <input type="radio" id="resto-3" name="resto-rating" value="3"><label for="resto-3">★</label>
+                <input type="radio" id="resto-2" name="resto-rating" value="2"><label for="resto-2">★</label>
+                <input type="radio" id="resto-1" name="resto-rating" value="1" checked><label for="resto-1">★</label>
+            </div>
+        </div>
+
+        <textarea id="review-comment" placeholder="Add a comment..." class="w-full border-gray-300 rounded-md mt-4"></textarea>
+        <button onclick="submitReview(${orderId})" class="w-full bg-orange-500 text-white font-semibold py-3 rounded-lg">Submit Review</button>
+    </div>`, 'lg');
+}
+window.showReviewModal = showReviewModal;
+
+async function submitReview(orderId) {
+    const order = state.orders.find(o => o.id === orderId);
+    if (!order) return;
+    const user = state.userData[state.currentUser];
+
+    const reviewData = {
+        itemRatings: {},
+        restaurantRating: document.querySelector('input[name="resto-rating"]:checked').value,
+        comment: document.getElementById('review-comment').value,
+        orderId: orderId,
+        customerId: user.name, // Using name for display
+        timestamp: new Date()
+    };
+
+    order.items.forEach(item => {
+        const ratingInput = document.querySelector(`input[name="food-rating-${item.id}"]:checked`);
+        if(ratingInput) {
+            reviewData.itemRatings[item.name] = ratingInput.value;
+        }
+    });
+
+    await addDoc(reviewsCollection, reviewData);
+
+    order.review = reviewData;
+    order.status = 'Reviewed';
+    
+    console.log("Review Submitted:", reviewData);
+
+    closeModal();
+    renderView('orderStatus', orderId);
+}
+window.submitReview = submitReview;
+
+
+function showImageModal(src) { showModal(`<div class="p-2"><img src="${src}" class="w-full h-auto rounded-lg"></div>`, 'lg'); }
+window.showImageModal = showImageModal;
+
+// --- HELPERS ---
+function handleImagePreview(event, previewId, urlId) {
+    const file = event.target.files[0];
+    if (file) { const reader = new FileReader(); reader.onload = (e) => { document.getElementById(previewId).src = e.target.result; document.getElementById(urlId).value = e.target.result; }; reader.readAsDataURL(file); }
+}
+window.handleImagePreview = handleImagePreview;
+
+function switchPaymentMethod(method) {
+    document.getElementById('codDetails').classList.toggle('hidden', method !== 'cod');
+    document.getElementById('onlineDetails').classList.toggle('hidden', method !== 'online');
+}
+window.switchPaymentMethod = switchPaymentMethod;
+
+function switchGcashMethod(method) {
+    document.getElementById('gcashQRDetails').classList.toggle('hidden', method !== 'qr');
+    document.getElementById('gcashOnlineDetails').classList.toggle('hidden', method !== 'online');
+}
+window.switchGcashMethod = switchGcashMethod;
+
+
+// --- CART LOGIC ---
+function addToCart(productId) {
+    const existingItem = state.cart.find(item => item.id === productId);
+    if (existingItem) existingItem.quantity++; else { const product = state.products.find(p => p.id === productId); state.cart.push({ ...product, quantity: 1 }); }
+    updateCartCount(); if(state.currentView === 'cart') renderView('cart');
+}
+window.addToCart = addToCart;
+
+function removeFromCart(productId) { state.cart = state.cart.filter(item => item.id !== productId); updateCartCount(); renderView('cart'); }
+window.removeFromCart = removeFromCart;
+
+function updateQuantity(productId, change) {
+    const cartItem = state.cart.find(item => item.id === productId);
+    if (cartItem) { cartItem.quantity += change; if (cartItem.quantity <= 0) removeFromCart(productId); else renderView('cart'); }
+}
+window.updateQuantity = updateQuantity;
+
+function updateCartCount() {
+    const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+    const cartCountEl = document.getElementById('cart-count');
+    if (cartCountEl) cartCountEl.textContent = count;
+}
+window.updateCartCount = updateCartCount;
+
+// --- AUTH & NAV ---
+function toggleAuthView(view) { document.getElementById('loginView').classList.toggle('active', view === 'login'); document.getElementById('registerView').classList.toggle('active', view === 'register'); }
+window.toggleAuthView = toggleAuthView;
+
+function login() {
+    const email = document.getElementById('loginEmail').value;
+    const errorEl = document.getElementById('loginError');
+    const userKey = Object.keys(state.userData).find(k => k.startsWith(email.split('@')[0]));
+    if (state.userData[email] || userKey) { 
+        state.currentUser = state.userData[email] ? email : userKey; 
+        state.currentView = 'home'; 
+        errorEl.textContent = ''; 
+        render(); 
+    } else { 
+        errorEl.textContent = 'Invalid credentials.'; 
+    }
+}
+window.login = login;
+
+function register() { alert('Registration successful! Please log in.'); toggleAuthView('login'); }
+window.register = register;
+
+function loginAs(user) {
+    // Reset session state before switching users to prevent data leakage
+    state.cart = [];
+    state.orders = [
+        { 
+            id: 12345, 
+            customerId: 'user1', 
+            riderId: 'rider1', 
+            restaurant: 'NaNi', 
+            items: [
+                { id: "abc-123", name: "Tonkotsu Ramen", price: 450, quantity: 1, image: "https://placehold.co/600x400/F97316/FFFFFF?text=Ramen" },
+                { id: "def-456", name: "Pork Gyoza", price: 250, quantity: 1, image: "https://placehold.co/600x400/F97316/FFFFFF?text=Gyoza" }
+            ], 
+            total: 750, 
+            status: 'Preparing',
+            payment: { method: 'Cash on Delivery', cashAmount: '1000' }
+        }
+    ];
+    state.activeOrderId = null;
+    state.modifyingOrderId = null;
+    state.chatMessages = {};
+    
+    // Login as the new user
+    state.currentUser = user;
+    state.currentView = 'home';
+    render();
+}
+window.loginAs = loginAs;
+
+function logout() {
+    // Reset all session-specific state for a clean logout
+    state.currentUser = null;
+    state.cart = [];
+    state.orders = [];
+    state.activeOrderId = null;
+    state.modifyingOrderId = null;
+    state.chatMessages = {};
+    
+    document.getElementById('loginEmail').value = '';
+    document.getElementById('loginPassword').value = '';
+    hideView('appContainer');
+    showView('authView');
+}
+window.logout = logout;
+
+function showView(viewId) { document.getElementById(viewId).classList.add('active'); }
+window.showView = showView;
+
+function hideView(viewId) { document.getElementById(viewId).classList.remove('active'); }
+window.hideView = hideView;
+
+
+// --- INITIALIZATION ---
+async function seedInitialProducts() {
+    const snapshot = await getDocs(productsCollection);
+    if (snapshot.empty) {
+        console.log("No products found, seeding initial data to Firestore...");
+        const initialProducts = [
+            { name: "Tonkotsu Ramen", restaurant: "NaNi", price: 450, image: "https://placehold.co/600x400/F97316/FFFFFF?text=Ramen", description: "Rich and creamy pork bone broth with chashu pork, soft-boiled egg, nori, and spring onions." },
+            { name: "Sushi Platter", restaurant: "NaNi", price: 800, image: "https://placehold.co/600x400/F97316/FFFFFF?text=Sushi", description: "A deluxe assortment of fresh nigiri and maki rolls, including tuna, salmon, and california rolls." },
+            { name: "Chicken Teriyaki Don", restaurant: "NaNi", price: 350, image: "https://placehold.co/600x400/F97316/FFFFFF?text=Teriyaki", description: "Grilled chicken glazed with sweet and savory teriyaki sauce, served over a bowl of steamed rice." },
+            { name: "Ebi Tempura", restaurant: "NaNi", price: 400, image: "https://placehold.co/600x400/F97316/FFFFFF?text=Tempura", description: "Lightly battered and deep-fried prawns and assorted vegetables, served with a tentsuyu dipping sauce." },
+            { name: "Pork Gyoza", restaurant: "NaNi", price: 250, image: "https://placehold.co/600x400/F97316/FFFFFF?text=Gyoza", description: "Pan-fried Japanese dumplings filled with ground pork and vegetables. Crispy on the bottom, juicy inside." },
+            { name: "Chicken Katsu Curry", restaurant: "NaNi", price: 380, image: "https://placehold.co/600x400/F97316/FFFFFF?text=Katsu", description: "Crispy deep-fried chicken cutlet served with a rich and flavorful Japanese curry sauce and rice." }
+        ];
+        for (const product of initialProducts) {
+            await addDoc(productsCollection, product);
+        }
+    }
+}
+
+function setupDataListeners() {
+    onSnapshot(productsCollection, (snapshot) => {
+        state.products = [];
+        snapshot.forEach(doc => {
+            state.products.push({ id: doc.id, ...doc.data() });
+        });
+        console.log("Products updated from Firestore:", state.products);
+        if (state.currentUser) {
+            renderView(state.currentView, state.activeOrderId);
+        }
+    });
+
+    onSnapshot(settingsDoc, (doc) => {
+        if (doc.exists()) {
+            state.dashboardBg = doc.data().backgroundUrl;
+            console.log("Dashboard background updated from Firestore.");
+            if (state.currentUser && state.currentView === 'home') {
+                renderView('home');
+            }
+        }
+    });
+
+    onSnapshot(reviewsCollection, (snapshot) => {
+        state.reviews = [];
+        snapshot.forEach(doc => {
+            state.reviews.push({ id: doc.id, ...doc.data() });
+        });
+        console.log("Reviews updated from Firestore:", state.reviews);
+        if (state.currentUser) {
+            renderView(state.currentView);
+        }
+    });
+}
+
+async function initializeAppWithAuth() {
+    try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+            await signInAnonymously(auth);
+        }
+        console.log("Firebase Auth signed in.");
+        await seedInitialProducts();
+        setupDataListeners(); 
+        render();
+    } catch (error) {
+        console.error("Firebase initialization failed:", error);
+    }
+}
+
+initializeAppWithAuth();
+
+</script>
+</body>
+</html>
